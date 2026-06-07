@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Sign In</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <header>
+    <h1>SMART ATTENDANCE SYSTEM</h1>
+    <p class="ehc"> Register Portal For College Students </p>
+  </header>
+  
+   
+
+  <form method="POST" action="/calculate">
+    <div class="details">
+    <h2>Enter Details</h2>
+    
+    <label for="Username"><b> Full Name</b> </label>
+    <input type="text" id="Username" name="Username" placeholder="Enter Full Name" required>
+  
+    <div class="class"><span><b> Year </b> </span> 
+    <select name="class" required>
+      <option value="" disabled selected hidden> Select Year </option>
+      <option value="1">  1st Year </option>
+      <option value="2"> 2nd Year</option>
+      <option value="3"> 3rd Year </option>
+      <option value="4"> 4th Year </option>
+      
+     </select>
+    </div>
+    
+    <div class="section"><span><b>Section </b> </span> 
+    <select name="section" >
+      <option value="" disabled selected hidden> Select Section (if any) </option>
+      <option value="A">  A </option>
+      <option value="B"> B</option>
+      <option value="C"> C </option>
+      <option value="D"> D </option>
+      <option value="A"> E </option>
+      <option value="B"> F</option>
+      <option value="C"> G </option>
+      <option value="D"> H </option>
+      
+      
+    </select>
+    </div>
+     
+    <label for="Roll"><b> Roll Number </b></label>
+    <input type="text" id="Roll" name="Roll" placeholder="Enter Roll No. " required>
+    
+    <label for="Classroom"> <b>Room No. of your current class</b> </label>
+    <input type="text" id="Classroom" name="Classroom" placeholder="Enter Classroom No. (eg - NAB303) " required>
+   
+     <label for="image"> <b> Upload Passport size photo</b></label>
+      <input type="file" id="image" name="image">
+    
+    <div class="field">
+  <span><b>Field of Study</b></span>
+  <select id="field" name="field" required>
+    <option value="" disabled selected hidden>Select Field</option>
+    <option value="BTech">B.Tech</option>
+    <option value="BSc">B.Sc</option>
+    <option value="MSc">M.Sc</option>
+    <option value="BA">BA</option>
+    <option value="MA">MA</option>
+  </select>
+</div>
+
+<div class="type">
+  <span><b>Stream</b></span>
+  <select id="stream" name="stream" required>
+    <option value="" disabled selected hidden>Select Stream</option>
+  </select>
+</div>
+
+<script>
+  const streamOptions = {
+    BTech: [
+      {value: "CSE", text: "Computer Science"},
+      {value: "ECE", text: "Electronics & Communication"},
+      {value: "EE", text: "Electrical"},
+      {value: "ME", text: "Mechanical"},
+      {value: "CE", text: "Civil"},
+      {value: "CHE", text: "Chemical"},
+      {value: "MME", text: "Metallurgy"},
+      {value: "BT", text: "Biotech"}
+    ],
+    BSc: [
+      {value: "PHY", text: "Physics"},
+      {value: "CHEM", text: "Chemistry"},
+      {value: "MATH", text: "Mathematics"},
+      {value: "BIO", text: "Biology"},
+      {value: "CS", text: "Computer Science"}
+    ],
+    MSc: [
+      {value: "PHY", text: "Physics"},
+      {value: "CHEM", text: "Chemistry"},
+      {value: "MATH", text: "Mathematics"},
+      {value: "CS", text: "Computer Science"},
+      {value: "BIO", text: "Biology"}
+    ],
+    BA: [
+      {value: "ENG", text: "English"},
+      {value: "HIS", text: "History"},
+      {value: "POL", text: "Political Science"},
+      {value: "SOC", text: "Sociology"}
+    ],
+    MA: [
+      {value: "ENG", text: "English"},
+      {value: "HIS", text: "History"},
+      {value: "POL", text: "Political Science"},
+      {value: "SOC", text: "Sociology"}
+    ]
+  };
+
+  document.getElementById("field").addEventListener("change", function() {
+    const streamSelect = document.getElementById("stream");
+    streamSelect.innerHTML = '<option value="" disabled selected hidden>Select Stream</option>';
+    const selectedField = this.value;
+    if (streamOptions[selectedField]) {
+      streamOptions[selectedField].forEach(opt => {
+        const option = document.createElement("option");
+        option.value = opt.value;
+        option.textContent = opt.text;
+        streamSelect.appendChild(option);
+      });
+    }
+  });
+</script>
+
+    
+ 
+    
+      
+    </select><br><br>
+    
+    <input class="calculate" type="submit" value="Submit">
+  </form>
+  </div>
+   
+  
+  
+
+  
+  <div class="footer">
+    <p>© 2026 Team  Vision Nexus</p>
+  </div>
+</body>
+</html>
