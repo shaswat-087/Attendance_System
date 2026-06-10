@@ -13,7 +13,6 @@ navigator.mediaDevices.getUserMedia({ video: true })
         statusBox.innerHTML = "Camera access denied ❌";
     });
 
-
 // CAPTURE BUTTON CLICK
 captureBtn.addEventListener("click", () => {
 
@@ -36,35 +35,20 @@ captureBtn.addEventListener("click", () => {
 
     console.log("Captured Image:", imageData);
 
-    // 👉 4. Simulate processing (later backend)
-    setTimeout(() => {
-
-        // ✅ SUCCESS CASE (for demo)
-        statusBox.innerHTML = "✅ Attendance Marked!";
+    // 👉 4. Send captured frame to Flask backend
+    fetch("/recognize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: imageData })
+    })
+    .then(res => res.json())
+    .then(data => {
+        statusBox.innerHTML = data.message;
         statusBox.className = "status success";
-
-        // 👉 Remove glow
         videoBox.style.boxShadow = "0 0 20px #0ff";
-
-    }, 2500);
-
-});
-
-
-// FILE UPLOAD SUPPORT
-const uploadInput = document.querySelector(".upload-section");
-
-uploadInput.addEventListener("change", () => {
-
-    if (uploadInput.files.length > 0) {
-
-        statusBox.innerHTML = "📂 Image uploaded, processing...";
-        statusBox.className = "status processing";
-
-        setTimeout(() => {
-            statusBox.innerHTML = "✅ Attendance Marked via Upload!";
-            statusBox.className = "status success";
-        }, 2000);
-    }
-
+    })
+    .catch(err => {
+        statusBox.innerHTML = "❌ Error connecting to server";
+        statusBox.className = "status error";
+    });
 });
