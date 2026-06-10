@@ -155,6 +155,9 @@ video {
 
    
 }
+.info span{
+    justify-content: left;
+}
 .status{
     margin-top: 15px;
     padding-top: 20px;
