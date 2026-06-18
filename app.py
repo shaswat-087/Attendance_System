@@ -1,11 +1,6 @@
 from flask_sqlalchemy  import SQLAlchemy
-from flask import Flask,render_template,request
-import face_recognition as fr
+from flask import Flask,render_template,request,redirect,url_for,session
 import os
-import base64
-from io import BytesIO
-from PIL import Image
-import numpy as np
 
 app=Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:TVN%402026@localhost:5432/attendance_db'
@@ -16,12 +11,17 @@ db=SQLAlchemy(app)
 known_encodings=[]
 known_students=[]
 
+@app.route("/")
+def index():
+    return render_template('index.html')
+
 class CollegeStudent(db.Model):
   
     Id=db.Column(db.Integer,primary_key=True)
     Username=db.Column(db.String(100),nullable=False)
     Class=db.Column(db.String(10),nullable=False)
     Section=db.Column(db.String(10),nullable=False)
+    password=db.Column(db.String(10),nullable=False)
     Roll=db.Column(db.String(20),nullable=False)
     Stream=db.Column(db.String(30),nullable=False)
     Image_path=db.Column(db.String(300),nullable=False)
@@ -41,7 +41,7 @@ def register():
     Class=request.form['class']
     Section=request.form['section']
     Roll=request.form['Roll']
-   
+    Password=request.form['password']
     Stream=request.form.get('type')   
     Image=request.files['image']
 
@@ -55,6 +55,7 @@ def register():
         Section=Section,
         Roll=Roll,
         Stream=Stream,
+        Password=Password,
         Image_path=filepath
     )
     db.session.add(student)
@@ -68,6 +69,13 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     app.run(debug=True)
+
+import face_recognition as fr
+import os
+import base64
+from io import BytesIO
+from PIL import Image
+import numpy as np
 
 def preload_students():
     students=CollegeStudent.query.all()
@@ -336,6 +344,21 @@ dash_app.layout = html.Div([
  })
 
 
+from werkzeug.security import check_password_hash
+@app.route('/log-in',methods=['POST'])
+def login():
+    Username=request.form['Username']
+    Roll=request.form['Roll']
+    password=request.form['password']
+    
+    student=CollegeStudent.query.filter_by(Username=Username,Roll=Roll).first()
+
+    if student and check_password_hash(student.password,password):
+        #Valid Password
+        session['student_id']=student.Id
+        return redirect(url_for('student'))
+    else:
+        return "Invalid Username or Paasword",401
 
 
 
