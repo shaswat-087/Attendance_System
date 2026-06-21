@@ -1,13 +1,21 @@
 from flask_sqlalchemy  import SQLAlchemy
-from flask import Flask,render_template,request,redirect,url_for,session
+from sqlalchemy import create_engine
+from flask import Flask,render_template,request,redirect,url_for,session,jsonify
 import os
+import random
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_cors import CORS
 
 app=Flask(__name__)
+CORS(app)
+app.secret_key='your key'
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:TVN%402026@localhost:5432/attendance_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS']=False
 app.config['UPLOAD_FOLDER']='uploads'
 
 db=SQLAlchemy(app)
+global known_encodings,known_students
 known_encodings=[]
 known_students=[]
 
@@ -15,38 +23,153 @@ known_students=[]
 def index():
     return render_template('index.html')
 
+@app.route("/student")
+def student():
+    return render_template('student.html')
+
+@app.route("/aboutus")
+def aboutus():
+    return render_template('aboutus.html')
+
+class College(db.Model):
+    Unique_ID=db.Column(db.String(100),primary_key=True,nullable=False)
+    Name=db.Column(db.String(100),unique=True,nullable=False)
+    Type=db.Column(db.String(100),nullable=False)
+
 class CollegeStudent(db.Model):
   
     Id=db.Column(db.Integer,primary_key=True)
     Username=db.Column(db.String(100),nullable=False)
     Class=db.Column(db.String(10),nullable=False)
     Section=db.Column(db.String(10),nullable=False)
-    password=db.Column(db.String(10),nullable=False)
+    password=db.Column(db.String(200),nullable=False)
     Roll=db.Column(db.String(20),nullable=False)
     Stream=db.Column(db.String(30),nullable=False)
+    College=db.Column(db.String(100),nullable=False)
     Image_path=db.Column(db.String(300),nullable=False)
    
 class Attendance(db.Model):
     Id=db.Column(db.Integer,primary_key=True)
     Status=db.Column(db.String(30),nullable=False)
     Time=db.Column(db.DateTime, default=db.func.current_timestamp())
-    student_id=db.Column(db.Integer,db.ForeignKey('college_student.id'))
-
+    student_id=db.Column(db.Integer,db.ForeignKey('college_student.Id'))
     student=db.relationship('CollegeStudent', backref='attendances')
 
+@app.route('/admin',methods=['GET','POST'])
+def admin():
+ if request.method=='POST':
+    data = request.json 
+    Name = data["Name"].strip().title()
+    Type = data["type"]
 
-@app.route('/calculate',methods=['POST'])
+    existing=College.query.filter_by(Name=Name).first()
+    if existing:
+        return jsonify({"id": existing.Unique_ID, "newlyCreated": False})
+
+    else:
+        prefix=Type[:3].upper()
+        words = Name.split()
+        abbrev = "".join([w[:3].upper() for w in words[:2]])
+        while True:
+         random_num = random.randint(1, 999)
+         new_id = f"{prefix}{abbrev}{str(random_num).zfill(3)}"
+         # Ensure uniqueness
+         if not College.query.filter_by(Unique_ID=new_id).first():
+          break
+        new_college = College(Unique_ID=new_id, Name=Name, Type=Type)
+        db.session.add(new_college)
+        db.session.commit()
+        if new_college and new_id:
+          
+          session['admin']=new_college.Unique_ID
+          return redirect(url_for('admindash'))
+        else:
+           return "Invalid Username or Password",401
+     
+ return jsonify({"id": new_id, "newlyCreated": True})
+ 
+@app.route('/adminlogin',methods=['GET','POST'])
+def adminlogin():
+  if request.method == 'POST':
+    Name=request.form['Name']
+    Unique_ID=request.form['uniqueId']
+   
+    
+    admin=College.query.filter_by(Name=Name,Unique_ID=Unique_ID).first()
+
+    if admin and Unique_ID:
+        #Valid Password
+        session['admin']=admin.Unique_ID
+        return redirect(url_for('admindash'))
+    else:
+        return "Invalid Username or Password",401
+    
+  return render_template('adminlogin.html')
+
+@app.route("/admindash")
+def admindash():
+   from datetime import datetime
+   records=Attendance.query.all
+   start_date = datetime(2026, 1, 1)
+   end_date = datetime(2026, 6, 22, 23, 59, 59)
+   Stream = request.args.get("Stream")
+   Section = request.args.get("Section")
+   report=[]
+   percentage=0
+   students = CollegeStudent.query.order_by(CollegeStudent.Roll.asc()).all()
+   if Stream and Stream!='All':
+           student=CollegeStudent.query.filter_by(Stream=Stream)
+   if Section and Section!='All':
+        student=CollegeStudent.query.filter_by(Section=Section)
+
+      
+   for student in students:
+        records = Attendance.query.filter(
+            Attendance.student_id == student.Id,
+            Attendance.Time >= start_date,
+            Attendance.Time <= end_date
+            
+         ).all()
+      
+        total=len(records)
+        present = sum(1 for r in records if r.Status == "Present")
+        percentage=(present/total)*100 if total>0 else 0
+   
+   report.append({
+            "Id": student.Id,
+            "Username": student.Username,
+            "Roll": student.Roll,
+            "Stream": student.Stream,
+            "Section": student.Section,
+            "percentage": round(percentage, 2)
+        })
+
+   
+   return render_template('admindash.html',
+                          report=report)
+
+    
+
+@app.route('/calculate',methods=['GET','POST'])
 def register():
+   if request.method=='POST': 
     Username=request.form['Username']
     Class=request.form['class']
     Section=request.form['section']
     Roll=request.form['Roll']
-    Password=request.form['password']
-    Stream=request.form.get('type')   
+    password=request.form['password']
+    Stream=request.form['Stream']  
+    College=request.form['College']
     Image=request.files['image']
 
-    filename=Image.filename
-    filepath=os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    hashed_password = generate_password_hash(password)
+   
+    upload_folder = app.config.get('UPLOAD_FOLDER', 'uploads')
+    os.makedirs(upload_folder, exist_ok=True)
+
+    # Save file
+    filename = Image.filename
+    filepath = os.path.join(upload_folder, filename)
     Image.save(filepath)
 
     student=CollegeStudent(
@@ -55,20 +178,40 @@ def register():
         Section=Section,
         Roll=Roll,
         Stream=Stream,
-        Password=Password,
+        College=College,
+        password=hashed_password,
         Image_path=filepath
     )
     db.session.add(student)
     db.session.commit()
+    return redirect(url_for('student'))
 
-   
+   else:
     return render_template('register2.html')
 
 
-if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)
+
+@app.route('/login',methods=['GET','POST'])
+def login():
+  if request.method == 'POST':
+    Username=request.form['Username']
+    Roll=request.form['Roll']
+    password=request.form['password']
+    
+    student=CollegeStudent.query.filter_by(Username=Username,Roll=Roll).first()
+
+    if student and check_password_hash(student.password,password):
+        #Valid Password
+        session['student_id']=student.Id
+        return redirect(url_for('student'))
+    else:
+        return "Invalid Username or Password",401
+    
+    
+  return render_template('login.html')
+
+
+
 
 import face_recognition as fr
 import os
@@ -83,52 +226,55 @@ def preload_students():
         if os.path.exists(student.Image_path):
             img=fr.load_image_file(student.Image_path)
             encodings=fr.face_encodings(img)
-        if encodings:
-            known_encodings.append(encodings[0])
-            known_students.append(student)
+            if encodings:
+              known_encodings.append(encodings[0])
+              known_students.append(student)
 
-@app.route('/recognize',methods=['POST'])
-
+@app.route('/recognize',methods=['GET','POST'])
 def recognize():
-    data=request.get_json()
-    image_data=data['image']
-    img_bytes=base64.b64decode(image_data.split(",")[1])   
-    img=Image.open(BytesIO(img_bytes))
-    img_array=np.array(img)
-    encodings=fr.face_encodings(img_array)
-
-    if not encodings:
-      return render_template("attendance.html",
-        Message="⚠️ No face detected. Try again")
-    unknown_encoding = encodings[0]
-
-    matches=fr.compare_faces(known_encodings,unknown_encoding)
-    distances = fr.face_distance(known_encodings, unknown_encoding)
-
-    if True in matches:
-        idx=matches.index(True)
-        student=known_students[idx]
-        similarity = (1 - distances[idx]) * 100
-        similarity = round(similarity, 2)  # e.g., 87.45%
-        attendance = Attendance(
-        Status="Present",
-        student_id=student.Id
-        )
-        db.session.add(attendance)
-        db.session.commit()
+    if request.method=='POST':
+        data=request.get_json()
+        image_data=data.get('image')
+        img_bytes=base64.b64decode(image_data.split(",")[1])   
         
-        return render_template("attendance.html",
-        Message="✅ Attendance Marked",
-        Name=student.Username,
-        Roll=student.Roll,
-        Class=student.Class,
-        Section=student.Section,
-        percentage=similarity
-        )
-    else:
-        return render_template("attendance.html",
-        Message="⚠️ Face not recognized. Try again ")
+        # 👉 The magic fix: .convert('RGB') strips the alpha channel safely
+        img=Image.open(BytesIO(img_bytes)).convert('RGB')
+        img_array=np.array(img)
+        encodings=fr.face_encodings(img_array)
 
+        if not encodings:
+            return jsonify({"message":"⚠️ No face detected. Try again"})
+            
+        unknown_encoding = encodings[0]
+
+        matches=fr.compare_faces(known_encodings,unknown_encoding)
+        distances = fr.face_distance(known_encodings, unknown_encoding)
+
+        if True in matches:
+            idx=matches.index(True)
+            student=known_students[idx]
+            similarity = (1 - distances[idx]) * 100
+            similarity = round(similarity, 2)  # e.g., 87.45%
+            
+            attendance = Attendance(
+                Status="Present",
+                student_id=student.Id
+            )
+            db.session.add(attendance)
+            db.session.commit()
+            
+            return jsonify({
+                    "message": "✅ Attendance Marked",
+                    "name": student.Username,
+                    "roll": student.Roll,
+                    "class": student.Class,
+                    "section": student.Section,
+                    "percentage": similarity
+            })
+        else:
+            return jsonify({"message": "⚠️ Face not recognized. Try again"})
+    else:
+        return render_template("attendance.html")
 
 import dash
 from dash import dcc, html
@@ -312,7 +458,7 @@ summary_fig.update_layout(
 
 dash_app = dash.Dash(__name__,
                      server=app,
-                     url_base_pathname='/dashboard')
+                     url_base_pathname='/dashboard/')
 
 dash_app.layout = html.Div([
     html.H1("Attendance Dashboard",
@@ -332,8 +478,7 @@ dash_app.layout = html.Div([
         dcc.Graph(figure=fig_month, style={"width":"22%", "display":"inline-block","border":"10px solid #4ce1e1"}),
         dcc.Graph(figure=fig2, style={"width":"30%", "display":"inline-block","border":"10px solid #4ce1e1"}),
         dcc.Graph(figure=fig_day, style={"width":"30%", "display":"inline-block","border":"10px solid #4ce1e1"}),
-        dcc.Graph(figure=summary_fig, style={"width":"30%", "display":"inline-block", "border":"10px solid #4ce1e1"}
- )
+        dcc.Graph(figure=summary_fig, style={"width":"30%", "display":"inline-block", "border":"10px solid #4ce1e1"})
 
     ]),
    
@@ -343,22 +488,135 @@ dash_app.layout = html.Div([
     "padding": "20px"
  })
 
+@app.route("/dashboard")
+def dashboard():
+    return redirect("/dashboard/")
 
-from werkzeug.security import check_password_hash
-@app.route('/log-in',methods=['POST'])
-def login():
-    Username=request.form['Username']
-    Roll=request.form['Roll']
-    password=request.form['password']
+@app.route('/analytics/<int:student_id>')
+def analytics(student_id):
+    if 'student_id' not in session:
+        return render_template('returnmsg.html')
+
+    total=Attendance.query.filter_by(student_id=student_id).count()
     
-    student=CollegeStudent.query.filter_by(Username=Username,Roll=Roll).first()
+    if total>0:
+        present=Attendance.query.filter_by(Status="Present").count()
+        my_percentage=(present/total)*100
+        absent=100-my_percentage
 
-    if student and check_password_hash(student.password,password):
-        #Valid Password
-        session['student_id']=student.Id
-        return redirect(url_for('student'))
     else:
-        return "Invalid Username or Paasword",401
+        present=0
+        my_percentage=0
+        absent=100-my_percentage
+
+    from sqlalchemy import func
+
+ 
+    students = CollegeStudent.query.all()
+    class_attendance = []
+
+    for student in students:
+     total_classes = Attendance.query.filter_by(student_id=student.Id).count()
+     present_classes = Attendance.query.filter_by(student_id=student.Id, Status="Present").count()
+     if total_classes > 0:
+        percentage = (present_classes / total_classes) * 100
+        class_attendance.append(percentage)
+
+    fig5=px.pie(values=[my_percentage,absent],names=["Present","Absent"],hole=0.5,color_discrete_sequence=["#24D27E", "#6A6969"])
+    fig5.update_layout(
+    title=dict(text="Your Attendance in Class", font=dict(size=20, color="#0897f6"), x=0.5, xanchor="center"),
+    paper_bgcolor="#cbf9f9",
+    )
+    from scipy.stats import norm
+    mean=np.mean(class_attendance)
+    std=np.std(class_attendance)
+
+    x=np.linspace(0, 100, 200)
+    pdf=(1/(std * np.sqrt(2*np.pi))) * np.exp(-0.5 * ((x-mean)/std)**2)
+    percentile = norm.cdf(my_percentage, mean, std) * 100
+    percentile = round(percentile, 2)
+    fig_curve = go.Figure()
+    fig_curve.add_trace(go.Scatter(
+    x=x, y=pdf,
+    mode="lines",
+    line=dict(color="blue", width=3),
+    name="Class Distribution"
+    ))
+
+    fig_curve.add_trace(go.Scatter(
+    x=[my_percentage,my_percentage],
+    y=[0, max(pdf)],
+    mode="lines",
+    line=dict(color="red", dash="dash"),
+    name="My Attendance"
+   ))
+   
+    
+
+    
+    fig_curve.update_layout(
+    title=" Probability Curve",
+    xaxis_title="Attendance %",
+    yaxis_title="Probability Density",
+    paper_bgcolor="#cbf9f9",
+    plot_bgcolor="#ffffff"
+  )
+
+
+    fig_curve.add_trace(go.Scatter(
+    x=x[x <= my_percentage],
+    y=pdf[x <= my_percentage],
+    mode="lines",
+    line=dict(color="green", width=0),
+    fill="tozeroy",
+    fillcolor="rgba(0,0,236,0.2)",
+    name="Percentile Area"
+   ))
+    
+    fig_curve.update_layout(
+    title={
+        "text": "Probability Curve<br><sup>You are ahead of "
+                f"{percentile}% of students in terms of attendance</sup>",
+        "x":0.5,          # center align
+        "xanchor":"center",
+        "font":dict(size=20, color="#004466")
+    },
+    xaxis_title="Attendance %",
+    yaxis_title="Probability Density",
+    paper_bgcolor="#cbf9f9",
+    plot_bgcolor="#ffffff",
+    hovermode=False
+  )
+
+
+
+    dash_app2=dash.Dash(__name__,
+                    server=app,
+                    url_base_pathname='/analytics/')
+
+   
+    dash_app2.layout=html.Div([html.H1(" Personal Analytics",
+        style={
+        "textAlign": "center",          
+        "color": "#004466",             
+        "fontFamily": "Trebuchet MS",  
+        "fontSize": "36px",            
+        "fontWeight": "bold",          
+        "marginBottom": "20px"          
+     }),
+
+         html.Div([
+         dcc.Graph(figure=fig5, style={"width":"40%", "display":"inline-block","border":"20px solid #4ce1e1","margin-left":"100px"}),
+         dcc.Graph(figure=fig5, style={"width":"40%", "display":"inline-block","border":"20px solid #4ce1e1","margin-right":"10px"}),
+         dcc.Graph(figure=fig_curve, style={"width":"70%", "display":"inline-block","border":"20px solid #4ce1e1","margin-left":"200px","margin-bottom":"20px"}),
+         
+          ]),
+   
+ ],
+ style={
+    "background": "#76f8f8",
+    "padding": "20px"
+ })
 
 
 
