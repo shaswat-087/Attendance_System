@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Attendance System</title>
+    <link rel="stylesheet" href="{{url_for('static',filename='style1.css')}}">
+
+    
+</head>
+
+<body>
+    <header>
+        <h1> SMART ATTENDANCE SYSTEM </h1>
+    </header>
+    <div class="container">
+        <div class="camera-section">
+            <div class="video-section">
+                <div class="line"></div>
+                <video autoplay></video>
+            </div>
+
+            <button class="capture">Capture Attendance</button>
+
+
+            
+        </div>
+        <div class="result-section">
+
+            <div class="result"><h2>Recognition Result </h2></div>
+
+            <div class="info">
+                {% if student %}
+                <p><span>Name: {{student.Username}}</span></p>
+               
+                <p><span>Class: {{student.Class}}</span> </p>
+                <p><span>Section:{{student.Section}}</span></p>
+                 <p><span>Roll Number:{{student.Roll}}</span></p>
+            </div>
+                {% endif %}
+            <div class="status">
+                {% if percentage %}
+                <p> {{percentage}}</p>
+                {% endif %}
+                {% if Message %}
+                <p>{{Message}}</p>
+                {% endif %}
+            
+            </div>
+
+        </div>
+
+    </div>
+    <script src="{{url_for('static',filename='script.js')}}" ></script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Log In</title>
+  <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='style.css')}}">
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="login">
+  <header>
+    <h1>SMART ATTENDANCE SYSTEM</h1>
+    <p class="ehc"> Register Portal For College Students </p>
+  </header>
+   
+   
+
+  <form method="POST" action="{{url_for('login')}}">
+    <div class="login-details">
+    <h2>Student Login</h2><br>
+    
+    <label for="Username"><b> Full Name</b> </label>
+    <input type="text" id="Username" name="Username" placeholder="Enter Full Name" required>
+    
+     <label for="Roll"><b>  Roll Number </b></label>
+     <input type="text" id="Roll" name="Roll" placeholder="Enter Roll Number" required>
+    <label for="password"><b> Password </b></label>
+        <input type="password" id="password" name="password" placeholder="Enter Password" required><br>
+   
+    <div class="register-link">
+    <a href="{{ url_for('register') }}">New User? Register Here</a>
+    </div>
+
+    
+    <input class="calculate" type="submit" value="Submit">
+  </form>
+  </div>
+   
+  
+  
+
+  
+ 
+</body>
+</html>

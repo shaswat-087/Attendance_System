@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Sign In</title>
+  <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='style.css')}}">
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <header>
+    <h1>SMART ATTENDANCE SYSTEM</h1>
+    <p class="ehc"> Register Portal For College Students </p>
+  </header>
+  
+   
+
+  <form method="POST" action="/calculate" enctype="multipart/form-data">
+    <div class="details">
+    <h2>Enter Details</h2>
+    
+    <label for="Username"><b> Full Name</b> </label>
+    <input type="text" id="Username" name="Username" placeholder="Enter Full Name" required>
+  
+    <div class="class"><span><b> Year </b> </span> 
+    <select name="class" required>
+      <option value="" disabled selected hidden> Select Year </option>
+      <option value="1">  1st Year </option>
+      <option value="2"> 2nd Year</option>
+      <option value="3"> 3rd Year </option>
+      <option value="4"> 4th Year </option>
+      
+     </select>
+    </div>
+    
+    <div class="section"><span><b>Section </b> </span> 
+    <select name="section" >
+      <option value="" disabled selected hidden> Select Section (if any) </option>
+      <option value="A">  A </option>
+      <option value="B"> B</option>
+      <option value="C"> C </option>
+      <option value="D"> D </option>
+      <option value="A"> E </option>
+      <option value="B"> F</option>
+      <option value="C"> G </option>
+      <option value="D"> H </option>
+      
+      
+    </select>
+    </div>
+     
+    <label for="Roll"><b> Roll Number </b></label>
+    <input type="text" id="Roll" name="Roll" placeholder="Enter Roll No. " required>
+    
+    
+    
+     <label for="image"> <b> Upload Passport size photo</b></label>
+      <input type="file" id="image" accept="image/*" name="image">
+     <label for="password"><b> Set Password </b></label>
+     <input type="password" id="password" name="password" placeholder="Set a password (8 characters)" required>
+    
+    <div class="field">
+  <span><b>Institute </b></span>
+  <input type="text" name="College" placeholder="Enter Institute Name (as per NIRF Portal )" required>
+  
+</div>
+
+ <div class="type">
+  <span><b>Stream</b></span>
+  <select id="Stream" name="Stream"  required>
+    <option value="" disabled selected hidden>Select Stream</option>
+    
+    <option value="CSE">Computer Science (CSE)</option>
+    <option value="ECE">Electronics and Communication (ECE)</option>
+    <option value="MNC">Mathematics and Computing (MNC)</option>
+    <option value="EE">Electrical (EE)</option>
+    <option value="ME">Mechanical (ME)</option>
+    <option value="CE">Civil (CE)</option>
+    <option value="CHE">Chemical (CHE)</option>
+    <option value="AE">Aerospace (AE)</option>
+    <option value="MME">Metallurgical and Materials (MME)</option>
+    <option value="MIN">Mining (MIN)</option>
+    <option value="BIO">Biotechnology (BIO)</option>
+    <option value="PIE">Production and Industrial (PIE)</option>
+    <option value="IT">Information Technology (IT)</option>
+    <option value="INST">Instrumentation (INST)</option>
+    <option value="ARCH">Architecture (ARCH)</option>
+    <option value="MATH">Mathematics (MATH)</option>
+    <option value="PHY">Physics (PHY)</option>
+    <option value="CHEM">Chemistry (CHEM)</option>
+  </select>
+</div>
+
+
+
+
+
+
+    
+    <input class="calculate" type="submit" value="Submit">
+  </form>
+  </div>
+  
+  
+  
+
+  
+  <div class="footer">
+    <p>© 2026 Team  Vision Nexus</p>
+  </div>
+</body>
+</html>

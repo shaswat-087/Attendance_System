@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Log In</title>
+  <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='style.css')}}">
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body class="login">
+  <header>
+    <h1>SMART ATTENDANCE SYSTEM</h1>
+    <p class="ehc">Register Portal For College Students</p>
+  </header>
+
+  <form method="POST" action="/adminlogin">
+    <div class="login-details">
+      <h2>Admin Login</h2><br>
+      
+      <label for="Name"><b>Institute Name</b></label>
+      <input type="text" id="Name" name="Name" placeholder="Enter Institute Name (as per NIRF portal)" required>
+      
+      <div class="type">
+        <span><b>Institution Type</b></span>
+        <select id="type" name="type" class="type" required>
+          <option value="" disabled selected hidden>Select</option>
+          <option value="IIT">IIT</option>
+          <option value="NIT">NIT</option>
+          <option value="CI">Central Govt Institution / GFTI</option>
+          <option value="SI">State Govt Institution</option>
+          <option value="NGI">Private</option>
+        </select>
+      </div>
+
+      <!-- Unique ID field always visible -->
+      <label for="uniqueId"><b>Institutional Unique ID</b></label>
+      <input type="text" id="uniqueId" name="uniqueId" placeholder="Enter Unique ID">
+
+      <!-- Single line option -->
+      <p class="register-link">
+        Don’t have an ID? <a href="#" onclick="checkCollege()">Generate One</a>
+      </p>
+
+      <p id="status"></p>
+      <button class="calculate">Login</button>
+    </div>
+  </form>
+
+  <script>
+    async function checkCollege() {
+      const Name = document.getElementById("Name").value;
+      const type = document.getElementById("type").value;
+
+      const response = await fetch("/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ Name: Name, type: type })
+      });
+
+      const data = await response.json();
+      const uniqueIdInput = document.getElementById("uniqueId");
+      const status = document.getElementById("status");
+
+      uniqueIdInput.value = data.id;
+      if (data.newlyCreated) {
+        uniqueIdInput.setAttribute("readonly", true);
+        status.innerText = "New Institutional ID generated.";
+      } else {
+        uniqueIdInput.removeAttribute("readonly");
+        status.innerText = "College already exists. Please confirm or enter Unique ID.";
+      }
+    }
+  </script>
+</body>
+</html>
