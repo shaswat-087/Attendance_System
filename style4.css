@@ -1,0 +1,153 @@
+*{    margin: 0%;
+    padding: 0%;
+}
+
+header {
+   height: 100px;
+   background-image: url("https://tse3.mm.bing.net/th/id/OIP.1FI2_M3v0ycEUTOVNZ-nlAHaEJ?pid=Api&P=0&h=180");
+
+    align-items: center;
+    background-color: #004466;
+    color: white;
+    padding-bottom: 30px;
+   
+    width: 100%;
+    font-family:  Tahoma, Geneva, Verdana, sans-serif;
+ 
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+body{
+  background-color: #fff;
+  background-image: url("https://files.123freevectors.com/wp-content/original/202448-plain-light-blue-background.jpg");
+
+
+}
+
+table {
+  
+  width: 100%;                 /* full width table */
+  margin-top: 40px;
+  overflow: hidden;
+}
+
+ td {
+  padding: 15px;               /* space inside cells */
+  text-align: left;          /* center align text */
+}
+
+th {
+  background:linear-gradient(135deg,#06bee7,#58cefc);   /* slightly darker grey for headers */
+  font-weight: bold;
+  padding:20px;
+  color: #fff;
+  font-family: 'Trebuchet MS';
+  font-size: 22px;
+  text-align: center;
+}
+
+tr:nth-child(odd) {
+  background-color: #ffffff;   /* white rows */
+  font-family: 'Verdana';
+  font-size: 20px;
+}
+
+tr:nth-child(even) {
+  background-color: #dfd6d6;   /* light grey rows */
+  font-family: 'Verdana';
+    font-size: 20px;
+    
+
+
+}
+
+tr:hover {
+  background-color: #f8cccc;   /* highlight row on hover */
+  transition: 0.3s;
+}
+
+th.roll,td.roll{
+    width:10%;
+}
+
+th.dept,td.dept{
+    width:20%;
+}
+
+th.name,td.name{
+    width:40%;
+}
+
+th.status,td.status{
+    width:30%;
+}
+
+.p{
+    font-size: 20px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.Section select,.Stream select{
+    display: inline;
+    width:20%;
+    padding:20px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    background: linear-gradient(90deg,#fff,#b1f8fe,#72d7cc);
+    color: #017883;
+    font-weight: bold;
+    border-radius: 10px;
+    font-size: 18px;
+    margin-top: 20px;
+}
+
+.Stream p{
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    color: #017883;
+    font-weight: bold;
+    font-size: 24px;
+    margin-top:10px;
+
+
+}
+
+.Section label,.Stream label{
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    color: #017883;
+    font-weight: bold;
+    font-size: 20px;
+    margin-left:10px;
+    margin-right:10px;
+
+
+}
+
+.Section,.Stream{
+    display: inline;
+    justify-content: space-between;
+}
+
+
+
+.board{
+  padding:20px;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  background: linear-gradient(90deg,#fff,#b1f8fe,#72d7cc);
+  color:#017883;
+  font-size: 18px;
+  display: inline;
+  justify-content: space-between;
+  border-radius: 8px;
+  margin-top: 20px;
+  width: 20%;
+  margin-left: 100px;
+  font-weight: bold;
+}
+
+.board a,.board a:hover{
+      color:#017883;
+
+
+}
