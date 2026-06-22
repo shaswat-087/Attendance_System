@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Sign In</title>
+  <link rel="stylesheet" type="text/css" href="{{url_for('static',filename='style.css')}}">
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <header>
+    <h1>SMART ATTENDANCE SYSTEM</h1>
+    <p class="ehc"> Register Portal For College Students </p>
+  </header>
+  
+   
+
+  <form method="POST" action="/adminregister" enctype="multipart/form-data">
+    <div class="details">
+    <h2>Register </h2>
+    
+    
+     
+     <label for="password"><b> Set Password </b></label>
+     <input type="password" id="password" name="password" placeholder="Set a password (8 characters)" required>
+    
+     
+     <div class="field">
+    <span><b>Institute </b></span>
+    <input type="text" name="Name" placeholder="Enter Institute Name (as per NIRF Portal )" required>
+     {% if Message %}
+    <span> {{Message}}</span>
+    {% endif %}
+  
+</div>
+ 
+    
+
+
+
+
+
+
+    
+    <input class="calculate" type="submit" value="Submit">
+  </form>
+  </div>
+  
+  
+  
+
+  
+  
+</body>
+</html>
