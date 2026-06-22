@@ -5,6 +5,7 @@ import os
 import random
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_cors import CORS
+from datetime import datetime,timedelta
 
 app=Flask(__name__)
 CORS(app)
@@ -19,6 +20,7 @@ global known_encodings,known_students
 known_encodings=[]
 known_students=[]
 
+
 @app.route("/")
 def index():
     return render_template('index.html')
@@ -31,10 +33,10 @@ def student():
 def aboutus():
     return render_template('aboutus.html')
 
-class College(db.Model):
-    Unique_ID=db.Column(db.String(100),primary_key=True,nullable=False)
-    Name=db.Column(db.String(100),unique=True,nullable=False)
-    Type=db.Column(db.String(100),nullable=False)
+class Institute(db.Model):
+    ID=db.Column(db.Integer,primary_key=True,nullable=False)
+    Name=db.Column(db.String(100),nullable=False)
+    password=db.Column(db.Text,nullable=False)
 
 class CollegeStudent(db.Model):
   
@@ -55,87 +57,86 @@ class Attendance(db.Model):
     student_id=db.Column(db.Integer,db.ForeignKey('college_student.Id'))
     student=db.relationship('CollegeStudent', backref='attendances')
 
-@app.route('/admin',methods=['GET','POST'])
-def admin():
- if request.method=='POST':
-    data = request.json 
-    Name = data["Name"].strip().title()
-    Type = data["type"]
+@app.route("/adminregister",methods=['GET','POST'])
+def adminregister():
+    if request.method=='POST':
+      password=request.form['password']
+      Name=request.form['Name']
+      existing_admin = Institute.query.filter_by(Name=Name).first()
+      if existing_admin:
+          Message="Admin with this name already exists. Please choose another."
+          return render_template('adminregister.html',
+                                 Message=Message)
+      hashed_password = generate_password_hash(password)
 
-    existing=College.query.filter_by(Name=Name).first()
-    if existing:
-        return jsonify({"id": existing.Unique_ID, "newlyCreated": False})
+      admin=Institute(
+          Name=Name,
+          password=hashed_password,
+
+       )
+      db.session.add(admin)
+      db.session.commit()
+      return redirect(url_for('adminlogin'))
 
     else:
-        prefix=Type[:3].upper()
-        words = Name.split()
-        abbrev = "".join([w[:3].upper() for w in words[:2]])
-        while True:
-         random_num = random.randint(1, 999)
-         new_id = f"{prefix}{abbrev}{str(random_num).zfill(3)}"
-         # Ensure uniqueness
-         if not College.query.filter_by(Unique_ID=new_id).first():
-          break
-        new_college = College(Unique_ID=new_id, Name=Name, Type=Type)
-        db.session.add(new_college)
-        db.session.commit()
-        if new_college and new_id:
-          
-          session['admin']=new_college.Unique_ID
-          return redirect(url_for('admindash'))
-        else:
-           return "Invalid Username or Password",401
-     
- return jsonify({"id": new_id, "newlyCreated": True})
- 
-@app.route('/adminlogin',methods=['GET','POST'])
+     return render_template('adminregister.html')
+
+@app.route("/adminlogin",methods=['GET','POST'])
 def adminlogin():
-  if request.method == 'POST':
-    Name=request.form['Name']
-    Unique_ID=request.form['uniqueId']
-   
+    if request.method == 'POST':
+     Name=request.form['Name']
+     password=request.form['password']
     
-    admin=College.query.filter_by(Name=Name,Unique_ID=Unique_ID).first()
+     admin=Institute.query.filter_by(Name=Name).first()
 
-    if admin and Unique_ID:
+     if admin and check_password_hash(admin.password,password):
         #Valid Password
-        session['admin']=admin.Unique_ID
+        session['admin_id']=admin.ID
         return redirect(url_for('admindash'))
-    else:
+     else:
         return "Invalid Username or Password",401
     
-  return render_template('adminlogin.html')
+    else:
+    
+     return render_template('adminlogin.html')
+
+
+
+
 
 @app.route("/admindash")
 def admindash():
-   from datetime import datetime
-   records=Attendance.query.all
-   start_date = datetime(2026, 1, 1)
-   end_date = datetime(2026, 6, 22, 23, 59, 59)
-   Stream = request.args.get("Stream")
-   Section = request.args.get("Section")
-   report=[]
-   percentage=0
-   students = CollegeStudent.query.order_by(CollegeStudent.Roll.asc()).all()
-   if Stream and Stream!='All':
-           student=CollegeStudent.query.filter_by(Stream=Stream)
-   if Section and Section!='All':
-        student=CollegeStudent.query.filter_by(Section=Section)
-
-      
-   for student in students:
+    from datetime import datetime
+    
+    start_date = datetime(2026, 1, 1)
+    end_date = datetime(2026, 6, 22, 23, 59, 59)
+    
+    Stream = request.args.get("Stream")
+    Section = request.args.get("Section")
+    
+    query = CollegeStudent.query
+    
+    if Stream and Stream != 'All':
+        query = query.filter_by(Stream=Stream)
+    if Section and Section != 'All':
+        query = query.filter_by(Section=Section)
+        
+    students = query.order_by(CollegeStudent.Roll.asc()).all()
+    
+    report = []
+    
+    for student in students:
         records = Attendance.query.filter(
             Attendance.student_id == student.Id,
             Attendance.Time >= start_date,
             Attendance.Time <= end_date
-            
-         ).all()
+        ).all()
       
-        total=len(records)
+        total = len(records)
         present = sum(1 for r in records if r.Status == "Present")
-        percentage=(present/total)*100 if total>0 else 0
+        percentage = (present / total) * 100 if total > 0 else 0
    
-   report.append({
+        report.append({
             "Id": student.Id,
             "Username": student.Username,
             "Roll": student.Roll,
@@ -144,9 +145,7 @@ def admindash():
             "percentage": round(percentage, 2)
         })
 
-   
-   return render_template('admindash.html',
-                          report=report)
+    return render_template('admindash.html', report=report)
 
     
 
@@ -203,7 +202,7 @@ def login():
     if student and check_password_hash(student.password,password):
         #Valid Password
         session['student_id']=student.Id
-        return redirect(url_for('student'))
+        return redirect(url_for('analytics'))
     else:
         return "Invalid Username or Password",401
     
@@ -232,6 +231,13 @@ def preload_students():
 
 @app.route('/recognize',methods=['GET','POST'])
 def recognize():
+    now=datetime.now()
+    system_start_time = datetime.now()  
+    entry_start_time = system_start_time
+    deadline = entry_start_time + timedelta(minutes=15)
+    #Using this logic if  class start time is 9 am, entry opens at 8:55 am  
+    #and closes at 9.10am
+
     if request.method=='POST':
         data=request.get_json()
         image_data=data.get('image')
@@ -254,12 +260,38 @@ def recognize():
             idx=matches.index(True)
             student=known_students[idx]
             similarity = (1 - distances[idx]) * 100
-            similarity = round(similarity, 2)  # e.g., 87.45%
+            similarity = round(similarity, 2)  
+           
+            if now>deadline:
+             return jsonify({
+                   "name": student.Username,
+                    "roll": student.Roll,
+                    "class": student.Class,
+                    "section": student.Section,
+                    "percentage": similarity,
             
+                    "Message": " ⚠️ Attendance marked as Late. Entry beyond 10 minutes of start time."
+             })
+
+       
+
+         
             attendance = Attendance(
                 Status="Present",
                 student_id=student.Id
             )
+
+            existing = session.query(Attendance).filter(
+            Attendance.CollegeStudent.Id == CollegeStudent.Id,
+            Attendance.Time.date() == now.date()).first()
+            if existing:
+                return jsonify({ "name": student.Username,
+                    "roll": student.Roll,
+                    "class": student.Class,
+                    "section": student.Section,
+                    "percentage": similarity,
+                   "message": "Attendance already marked for Today."
+                   })
             db.session.add(attendance)
             db.session.commit()
             
@@ -491,138 +523,120 @@ dash_app.layout = html.Div([
 @app.route("/dashboard")
 def dashboard():
     return redirect("/dashboard/")
+import dash
+from dash import dcc, html
+import plotly.express as px
+import plotly.graph_objects as go
+from scipy.stats import norm
+import numpy as np
+from flask import session, has_request_context, render_template, redirect
 
-@app.route('/analytics/<int:student_id>')
-def analytics(student_id):
+dash_app2 = dash.Dash(__name__, server=app, url_base_pathname='/personal_dashboard/')
+
+def serve_analytics_layout():
+    if not has_request_context():
+        return html.Div("Loading Dashboard...")
+
     if 'student_id' not in session:
-        return render_template('returnmsg.html')
+        return html.Div([
+            html.H2("Unauthorized Access"),
+            html.A("Please go back and login", href="/login")
+        ])
 
-    total=Attendance.query.filter_by(student_id=student_id).count()
+    student_id = session['student_id']
+
+    total = Attendance.query.filter_by(student_id=student_id).count()
     
-    if total>0:
-        present=Attendance.query.filter_by(Status="Present").count()
-        my_percentage=(present/total)*100
-        absent=100-my_percentage
-
+    if total > 0:
+        present = Attendance.query.filter_by(student_id=student_id, Status="Present").count()
+        my_percentage = (present / total) * 100
+        absent = 100 - my_percentage
     else:
-        present=0
-        my_percentage=0
-        absent=100-my_percentage
+        present = 0
+        my_percentage = 0
+        absent = 100
 
-    from sqlalchemy import func
-
- 
     students = CollegeStudent.query.all()
     class_attendance = []
 
     for student in students:
-     total_classes = Attendance.query.filter_by(student_id=student.Id).count()
-     present_classes = Attendance.query.filter_by(student_id=student.Id, Status="Present").count()
-     if total_classes > 0:
-        percentage = (present_classes / total_classes) * 100
-        class_attendance.append(percentage)
+        total_classes = Attendance.query.filter_by(student_id=student.Id).count()
+        present_classes = Attendance.query.filter_by(student_id=student.Id, Status="Present").count()
+        if total_classes > 0:
+            percentage = (present_classes / total_classes) * 100
+            class_attendance.append(percentage)
 
-    fig5=px.pie(values=[my_percentage,absent],names=["Present","Absent"],hole=0.5,color_discrete_sequence=["#24D27E", "#6A6969"])
+    if not class_attendance:
+        class_attendance = [0]
+
+    fig5 = px.pie(values=[my_percentage, absent], names=["Present", "Absent"], hole=0.5, color_discrete_sequence=["#24D27E", "#6A6969"])
     fig5.update_layout(
-    title=dict(text="Your Attendance in Class", font=dict(size=20, color="#0897f6"), x=0.5, xanchor="center"),
-    paper_bgcolor="#cbf9f9",
+        title=dict(text="Your Attendance in Class", font=dict(size=20, color="#0897f6"), x=0.5, xanchor="center"),
+        paper_bgcolor="#cbf9f9",
     )
-    from scipy.stats import norm
-    mean=np.mean(class_attendance)
-    std=np.std(class_attendance)
 
-    x=np.linspace(0, 100, 200)
-    pdf=(1/(std * np.sqrt(2*np.pi))) * np.exp(-0.5 * ((x-mean)/std)**2)
+    mean = np.mean(class_attendance)
+    std = np.std(class_attendance)
+    
+    if std == 0:
+        std = 0.001 
+
+    x = np.linspace(0, 100, 200)
+    pdf = (1 / (std * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((x - mean) / std) ** 2)
     percentile = norm.cdf(my_percentage, mean, std) * 100
     percentile = round(percentile, 2)
+
     fig_curve = go.Figure()
     fig_curve.add_trace(go.Scatter(
-    x=x, y=pdf,
-    mode="lines",
-    line=dict(color="blue", width=3),
-    name="Class Distribution"
+        x=x, y=pdf, mode="lines", line=dict(color="blue", width=3), name="Class Distribution"
     ))
 
     fig_curve.add_trace(go.Scatter(
-    x=[my_percentage,my_percentage],
-    y=[0, max(pdf)],
-    mode="lines",
-    line=dict(color="red", dash="dash"),
-    name="My Attendance"
-   ))
-   
-    
-
-    
-    fig_curve.update_layout(
-    title=" Probability Curve",
-    xaxis_title="Attendance %",
-    yaxis_title="Probability Density",
-    paper_bgcolor="#cbf9f9",
-    plot_bgcolor="#ffffff"
-  )
-
+        x=[my_percentage, my_percentage], y=[0, max(pdf)], mode="lines", line=dict(color="red", dash="dash"), name="My Attendance"
+    ))
 
     fig_curve.add_trace(go.Scatter(
-    x=x[x <= my_percentage],
-    y=pdf[x <= my_percentage],
-    mode="lines",
-    line=dict(color="green", width=0),
-    fill="tozeroy",
-    fillcolor="rgba(0,0,236,0.2)",
-    name="Percentile Area"
-   ))
-    
+        x=x[x <= my_percentage], y=pdf[x <= my_percentage], mode="lines", line=dict(color="green", width=0), fill="tozeroy", fillcolor="rgba(0,0,236,0.2)", name="Percentile Area"
+    ))
+
     fig_curve.update_layout(
-    title={
-        "text": "Probability Curve<br><sup>You are ahead of "
-                f"{percentile}% of students in terms of attendance</sup>",
-        "x":0.5,          # center align
-        "xanchor":"center",
-        "font":dict(size=20, color="#004466")
-    },
-    xaxis_title="Attendance %",
-    yaxis_title="Probability Density",
-    paper_bgcolor="#cbf9f9",
-    plot_bgcolor="#ffffff",
-    hovermode=False
-  )
+        title={
+            "text": "Probability Curve<br><sup>You are ahead of " f"{percentile}% of students in terms of attendance</sup>",
+            "x": 0.5, 
+            "xanchor": "center",
+            "font": dict(size=20, color="#004466")
+        },
+        xaxis_title="Attendance %",
+        yaxis_title="Probability Density",
+        paper_bgcolor="#cbf9f9",
+        plot_bgcolor="#ffffff",
+        hovermode=False
+    )
+
+    return html.Div([
+        html.H1("Personal Analytics", style={
+            "textAlign": "center", "color": "#004466", "fontFamily": "Trebuchet MS", 
+            "fontSize": "36px", "fontWeight": "bold", "marginBottom": "20px"
+        }),
+        html.Div([
+            dcc.Graph(figure=fig5, style={"width":"40%", "display":"inline-block", "border":"20px solid #4ce1e1", "marginLeft":"100px"}),
+            dcc.Graph(figure=fig_curve, style={"width":"40%", "display":"inline-block", "border":"20px solid #4ce1e1", "marginRight":"10px"})
+        ])
+    ], style={"background": "#76f8f8", "padding": "20px", "minHeight": "100vh"})
 
 
+dash_app2.layout = serve_analytics_layout
 
-    dash_app2=dash.Dash(__name__,
-                    server=app,
-                    url_base_pathname='/analytics/')
-
+@app.route('/analytics')
+def analytics():
+    if 'student_id' not in session:
+        return render_template('returnmsg.html')
    
-    dash_app2.layout=html.Div([html.H1(" Personal Analytics",
-        style={
-        "textAlign": "center",          
-        "color": "#004466",             
-        "fontFamily": "Trebuchet MS",  
-        "fontSize": "36px",            
-        "fontWeight": "bold",          
-        "marginBottom": "20px"          
-     }),
-
-         html.Div([
-         dcc.Graph(figure=fig5, style={"width":"40%", "display":"inline-block","border":"20px solid #4ce1e1","margin-left":"100px"}),
-         dcc.Graph(figure=fig5, style={"width":"40%", "display":"inline-block","border":"20px solid #4ce1e1","margin-right":"10px"}),
-         dcc.Graph(figure=fig_curve, style={"width":"70%", "display":"inline-block","border":"20px solid #4ce1e1","margin-left":"200px","margin-bottom":"20px"}),
-         
-          ]),
-   
- ],
- style={
-    "background": "#76f8f8",
-    "padding": "20px"
- })
-
-
+    return redirect('/personal_dashboard/')
 
 if __name__ == "__main__":
-  
     with app.app_context():
+     
         db.create_all()
         preload_students()
     app.run(debug=True)
