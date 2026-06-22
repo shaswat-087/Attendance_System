@@ -21,25 +21,14 @@
       <label for="Name"><b>Institute Name</b></label>
       <input type="text" id="Name" name="Name" placeholder="Enter Institute Name (as per NIRF portal)" required>
       
-      <div class="type">
-        <span><b>Institution Type</b></span>
-        <select id="type" name="type" class="type" required>
-          <option value="" disabled selected hidden>Select</option>
-          <option value="IIT">IIT</option>
-          <option value="NIT">NIT</option>
-          <option value="CI">Central Govt Institution / GFTI</option>
-          <option value="SI">State Govt Institution</option>
-          <option value="NGI">Private</option>
-        </select>
-      </div>
-
+      
       <!-- Unique ID field always visible -->
-      <label for="uniqueId"><b>Institutional Unique ID</b></label>
-      <input type="text" id="uniqueId" name="uniqueId" placeholder="Enter Unique ID">
+      <label for="password"><b> Password </b></label>
+      <input type="password" name="password"  placeholder="Enter Password">
 
       <!-- Single line option -->
       <p class="register-link">
-        Don’t have an ID? <a href="#" onclick="checkCollege()">Generate One</a>
+      <a href="{{url_for('adminregister')}}"> Don't have an ID ? Register </a>
       </p>
 
       <p id="status"></p>
@@ -47,30 +36,6 @@
     </div>
   </form>
 
-  <script>
-    async function checkCollege() {
-      const Name = document.getElementById("Name").value;
-      const type = document.getElementById("type").value;
 
-      const response = await fetch("/admin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Name: Name, type: type })
-      });
-
-      const data = await response.json();
-      const uniqueIdInput = document.getElementById("uniqueId");
-      const status = document.getElementById("status");
-
-      uniqueIdInput.value = data.id;
-      if (data.newlyCreated) {
-        uniqueIdInput.setAttribute("readonly", true);
-        status.innerText = "New Institutional ID generated.";
-      } else {
-        uniqueIdInput.removeAttribute("readonly");
-        status.innerText = "College already exists. Please confirm or enter Unique ID.";
-      }
-    }
-  </script>
 </body>
 </html>
