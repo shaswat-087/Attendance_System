@@ -1,6 +1,6 @@
 # Smart Attendance System 🚀
 
-A production-grade web application that automates the corporate or academic attendance pipeline using real-time facial recognition and advanced data analytics. Built over a month of intense, continuous development in June, this full-stack application bridges the gap between high-accuracy computer vision models and an interactive web interface.
+A  web application that automates the corporate or academic attendance pipeline using real-time facial recognition and advanced data analytics. Built over a month of intense, continuous development in June, this full-stack application bridges the gap between high-accuracy computer vision models and an interactive web interface.
 
 The system features a robust multi-tier web application, deep statistical analysis dashboards for monitoring attendance, and custom business logic tailored for academic accountability.
 
