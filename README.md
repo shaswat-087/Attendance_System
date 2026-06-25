@@ -44,14 +44,14 @@ cd smart-attendance-system
 ## 2. Set Up a Virtual Environment & Dependencies
 python -m venv venv
 
-# On Windows use: 
+### On Windows use: 
 venv\Scripts\activate
-# On macOS/Linux use:
+### On macOS/Linux use:
 source venv/bin/activate
 
-# Install the prerequisite packages
-pip install Flask Flask-SQLAlchemy psycopg2-binary face_recognition opencv-python dash plotly pandas werkzeug Flask-CORS
-3. Configure the Database Connection
+### Install the prerequisite packages
+pip install Flask Flask-SQLAlchemy psycopg2-binary face_recognition opencv-python dash plotly pandas werkzeug Flask-CORS#
+## 3. Configure the Database Connection
 Ensure your local PostgreSQL connection string inside app.py is accurately mapped to your server configurations:
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:YOUR_PASSWORD@localhost:5432/attendance_db'
