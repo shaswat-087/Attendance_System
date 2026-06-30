@@ -2,6 +2,7 @@ from flask_sqlalchemy  import SQLAlchemy
 from sqlalchemy import create_engine
 from flask import Flask,render_template,request,redirect,url_for,session,jsonify
 import os
+from sqlalchemy import cast, Date
 import random
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_cors import CORS
@@ -9,6 +10,7 @@ from datetime import datetime,timedelta
 
 app=Flask(__name__)
 CORS(app)
+
 app.secret_key='your key'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:TVN%402026@localhost:5432/attendance_db'
@@ -32,6 +34,8 @@ def student():
 @app.route("/aboutus")
 def aboutus():
     return render_template('aboutus.html')
+
+
 
 class Institute(db.Model):
     ID=db.Column(db.Integer,primary_key=True,nullable=False)
@@ -232,18 +236,16 @@ def preload_students():
 @app.route('/recognize',methods=['GET','POST'])
 def recognize():
     now=datetime.now()
-    system_start_time = datetime.now()  
-    entry_start_time = system_start_time
-    deadline = entry_start_time + timedelta(minutes=15)
-    #Using this logic if  class start time is 9 am, entry opens at 8:55 am  
-    #and closes at 9.10am
+    
+    class_start = now.replace(hour=12, minute=0, second=0, microsecond=0)
+    deadline = class_start + timedelta(minutes=15)
+    #Using this logic if  class start time is 9 am, entry after 9:15 am is marked as late
 
     if request.method=='POST':
         data=request.get_json()
         image_data=data.get('image')
         img_bytes=base64.b64decode(image_data.split(",")[1])   
         
-        # 👉 The magic fix: .convert('RGB') strips the alpha channel safely
         img=Image.open(BytesIO(img_bytes)).convert('RGB')
         img_array=np.array(img)
         encodings=fr.face_encodings(img_array)
@@ -280,10 +282,13 @@ def recognize():
                 Status="Present",
                 student_id=student.Id
             )
+            now = datetime.now()
+            today = now.date()
 
-            existing = session.query(Attendance).filter(
-            Attendance.CollegeStudent.Id == CollegeStudent.Id,
-            Attendance.Time.date() == now.date()).first()
+            existing = db.session.query(Attendance).filter(
+             Attendance.student_id == student.Id,   # Matches the student's unique ID
+            cast(Attendance.Time, Date) == today   # Strips the hours/minutes to compare just the date
+            ).first() 
             if existing:
                 return jsonify({ "name": student.Username,
                     "roll": student.Roll,
