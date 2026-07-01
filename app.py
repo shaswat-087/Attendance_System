@@ -232,84 +232,81 @@ def preload_students():
             if encodings:
               known_encodings.append(encodings[0])
               known_students.append(student)
-
-@app.route('/recognize',methods=['GET','POST'])
+@app.route('/recognize', methods=['GET', 'POST'])
 def recognize():
-    now=datetime.now()
+    now = datetime.now()
     
     class_start = now.replace(hour=12, minute=0, second=0, microsecond=0)
     deadline = class_start + timedelta(minutes=15)
-    #Using this logic if  class start time is 9 am, entry after 9:15 am is marked as late
 
-    if request.method=='POST':
-        data=request.get_json()
-        image_data=data.get('image')
-        img_bytes=base64.b64decode(image_data.split(",")[1])   
+    if request.method == 'POST':
+        data = request.get_json()
+        image_data = data.get('image')
+        img_bytes = base64.b64decode(image_data.split(",")[1])   
         
-        img=Image.open(BytesIO(img_bytes)).convert('RGB')
-        img_array=np.array(img)
-        encodings=fr.face_encodings(img_array)
+        img = Image.open(BytesIO(img_bytes)).convert('RGB')
+        img_array = np.array(img)
+        encodings = fr.face_encodings(img_array)
 
         if not encodings:
-            return jsonify({"message":"⚠️ No face detected. Try again"})
+            return jsonify({"status": "error", "message": "⚠️ No face detected. Try again"})
             
         unknown_encoding = encodings[0]
 
-        matches=fr.compare_faces(known_encodings,unknown_encoding)
+        matches = fr.compare_faces(known_encodings, unknown_encoding)
         distances = fr.face_distance(known_encodings, unknown_encoding)
 
         if True in matches:
-            idx=matches.index(True)
-            student=known_students[idx]
+            idx = matches.index(True)
+            student = known_students[idx]
             similarity = (1 - distances[idx]) * 100
             similarity = round(similarity, 2)  
            
-            if now>deadline:
-             return jsonify({
-                   "name": student.Username,
-                    "roll": student.Roll,
-                    "class": student.Class,
-                    "section": student.Section,
-                    "percentage": similarity,
-            
-                    "Message": " ⚠️ Attendance marked as Late. Entry beyond 10 minutes of start time."
-             })
-
-       
-
-         
-            attendance = Attendance(
-                Status="Present",
-                student_id=student.Id
-            )
-            now = datetime.now()
             today = now.date()
-
             existing = db.session.query(Attendance).filter(
-             Attendance.student_id == student.Id,   # Matches the student's unique ID
-            cast(Attendance.Time, Date) == today   # Strips the hours/minutes to compare just the date
-            ).first() 
+                Attendance.student_id == student.Id,   
+                cast(Attendance.Time, Date) == today   
+            ).first()
+
             if existing:
-                return jsonify({ "name": student.Username,
-                    "roll": student.Roll,
-                    "class": student.Class,
-                    "section": student.Section,
-                    "percentage": similarity,
-                   "message": "Attendance already marked for Today."
-                   })
-            db.session.add(attendance)
-            db.session.commit()
-            
-            return jsonify({
-                    "message": "✅ Attendance Marked",
+                return jsonify({
+                    "status": "warning",
+                    "message": "⚠️ Attendance already marked for Today.",
                     "name": student.Username,
                     "roll": student.Roll,
                     "class": student.Class,
                     "section": student.Section,
                     "percentage": similarity
+                })
+
+            if now > deadline:
+                status_label = "Late"
+                msg_text = "⚠️ Attendance marked as Late. Entry beyond 15 minutes of start time."
+                status_type = "warning"
+            else:
+                status_label = "Present"
+                msg_text = "✅ Attendance Marked"
+                status_type = "success"
+
+            attendance = Attendance(
+                Status=status_label,
+                student_id=student.Id
+            )
+            db.session.add(attendance)
+            db.session.commit()
+
+            return jsonify({
+                "status": status_type,
+                "message": msg_text,
+                "name": student.Username,
+                "roll": student.Roll,
+                "class": student.Class,
+                "section": student.Section,
+                "percentage": similarity
             })
+
         else:
-            return jsonify({"message": "⚠️ Face not recognized. Try again"})
+            return jsonify({"status": "error", "message": "⚠️ Face not recognized. Try again"})
     else:
         return render_template("attendance.html")
 
